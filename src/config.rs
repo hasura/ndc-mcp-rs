@@ -36,12 +36,11 @@ pub struct SseConfig {
 
 /// Configuration for an MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
+#[serde(tag = "type")]
 pub enum McpServerConfig {
-    /// Standard input/output connection
+    #[serde(rename = "stdio")]
     Stdio(StdioConfig),
-
-    /// Server-sent events connection
+    #[serde(rename = "sse")]
     Sse(SseConfig),
 }
 
