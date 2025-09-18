@@ -25,13 +25,19 @@ pub async fn create_stdio_client(config: &McpServerConfig) -> Result<Peer<RoleCl
         }
 
         // Create the child process
-        TokioChildProcess::new(&mut cmd)?
+        TokioChildProcess::new(&mut cmd)
+            .map_err(|e| anyhow!("Failed to start MCP server: {}", e))?
     } else {
         return Err(anyhow!("Invalid server configuration type for stdio transport"));
     };
 
-    // Create and initialize the client
-    let service = ().serve(child_process).await?;
+    // Create and initialize the client with timeout
+    let service = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        ().serve(child_process)
+    ).await
+    .map_err(|_| anyhow!("Timeout during MCP service initialization"))?
+    .map_err(|e| anyhow!("Failed to initialize MCP service: {}", e))?;
 
     // Extract the peer from the service
     let peer = service.peer().clone();

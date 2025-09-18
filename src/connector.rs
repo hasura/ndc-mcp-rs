@@ -43,30 +43,24 @@ async fn initialize_mcp_clients(
             )
         })?;
 
-        // List resources
-        let resources_result = peer.list_resources(None).await.map_err(|e| {
-            ErrorResponse::new(
-                StatusCode::BAD_REQUEST,
-                format!("Failed to list resources: {}", e),
-                serde_json::Value::Null,
-            )
-        })?;
+        // List resources (only if server supports resources)
         let mut resources = HashMap::new();
-        for resource in resources_result.resources {
-            resources.insert(resource.raw.name.clone(), resource);
+        if let Ok(resources_result) = peer.list_resources(Some(rmcp::model::PaginatedRequestParamInner::default())).await {
+            for resource in resources_result.resources {
+                resources.insert(resource.raw.name.clone(), resource);
+            }
+        } else {
+            tracing::info!("Server {} does not support resources", server_name.0);
         }
 
-        // List tools
-        let tools_result = peer.list_tools(None).await.map_err(|e| {
-            ErrorResponse::new(
-                StatusCode::BAD_REQUEST,
-                format!("Failed to list tools: {}", e),
-                serde_json::Value::Null,
-            )
-        })?;
+        // List tools (only if server supports tools)
         let mut tools = HashMap::new();
-        for tool in tools_result.tools {
-            tools.insert(tool.name.to_string(), tool);
+        if let Ok(tools_result) = peer.list_tools(Some(rmcp::model::PaginatedRequestParamInner::default())).await {
+            for tool in tools_result.tools {
+                tools.insert(tool.name.to_string(), tool);
+            }
+        } else {
+            tracing::info!("Server {} does not support tools", server_name.0);
         }
         // Create client
         let client = McpClient {
@@ -136,7 +130,7 @@ impl Connector for McpConnector {
         let state = initialize_mcp_clients(configuration).await?;
 
         // Generate schema from state
-        Ok(generate_schema(state).into())
+        Ok(generate_schema(&state).into())
     }
 
     async fn query_explain(

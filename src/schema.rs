@@ -250,24 +250,30 @@ fn create_scalar_types() -> BTreeMap<models::ScalarTypeName, models::ScalarType>
 }
 
 /// Generate the NDC schema from the connector state
-pub fn generate_schema(state: ConnectorState) -> models::SchemaResponse {
+pub fn generate_schema(state: &ConnectorState) -> models::SchemaResponse {
     let mut collections = Vec::new();
     let mut functions = Vec::new();
     let mut procedures = Vec::new();
 
     // Process each MCP client
     for (server_name, client) in &state.clients {
+        // Add error handling for empty tools/resources
+        if client.tools.is_empty() && client.resources.is_empty() {
+            tracing::warn!("MCP server {} has no tools or resources", server_name.0);
+            continue;
+        }
+
         // Map resources to collections
-        let mut server_collections = map_resources_to_collections(server_name, &client.resources);
-        collections.append(&mut server_collections);
+        let server_collections = map_resources_to_collections(server_name, &client.resources);
+        collections.extend(server_collections);
 
         // Map read-only tools to functions
-        let mut server_functions = map_tools_to_functions(server_name, &client.tools);
-        functions.append(&mut server_functions);
+        let server_functions = map_tools_to_functions(server_name, &client.tools);
+        functions.extend(server_functions);
 
         // Map mutable tools to procedures
-        let mut server_procedures = map_tools_to_procedures(server_name, &client.tools);
-        procedures.append(&mut server_procedures);
+        let server_procedures = map_tools_to_procedures(server_name, &client.tools);
+        procedures.extend(server_procedures);
     }
 
     // Create object types

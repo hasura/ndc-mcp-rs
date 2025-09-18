@@ -1,6 +1,6 @@
 {
-  "servers": [
-    {
+  "servers": {
+    "everything": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-everything"],
@@ -8,5 +8,5 @@
         "DEBUG": "true"
       }
     }
-  ]
+  }
 }
