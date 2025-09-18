@@ -1,24 +1,11 @@
 {
   "servers": {
-    "webex" :  {
+    "filesystem": {
       "type": "stdio",
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "WEBEX_PUBLIC_WORKSPACE_API_KEY",
-        "-e",
-        "WEBEX_USER_EMAIL",
-        "-e",
-        "WEBEX_API_BASE_URL",
-        "webex-mcp-server"
-      ],
+      "command": "mcp-filesystem-server",
+      "args": ["/home/rakesh/Downloads"],
       "env": {
-        "WEBEX_USER_EMAIL": "nikunj@hasura.io",
-        "WEBEX_API_BASE_URL": "https://webexapis.com/v1",
-        "WEBEX_PUBLIC_WORKSPACE_API_KEY": "ODgzZWMzYjItMTE4NS00NmI1LWI3YTktNzRlNjQyMzRmZTNlOGZmOGI3NDgtMTY2_PI91_a0b782ec-198d-45d5-956a-0c60451097d6"
+        "DEBUG": "true"
       }
     }
   }
