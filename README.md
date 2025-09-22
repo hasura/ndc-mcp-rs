@@ -48,6 +48,14 @@ Create a `config.json` file in the `configuration` directory with the following 
       "type": "stdio",
       "command": "secure-filesystem-server",
       "args": ["--allowed-paths", "/path/to/allowed/directory"]
+    },
+    "remote_server": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token-here"
+      },
+      "timeout_seconds": 30
     }
   }
 }
@@ -56,7 +64,7 @@ Create a `config.json` file in the `configuration` directory with the following 
 You can configure multiple MCP servers with different transport types:
 
 - **stdio**: For local MCP servers that communicate over standard input/output
-- **http**: For remote MCP servers that communicate over HTTP
+- **http**: For remote MCP servers that communicate over streamable HTTP transport (recommended for HTTP-based servers)
 
 ## Usage
 

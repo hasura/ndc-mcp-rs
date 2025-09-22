@@ -23,7 +23,7 @@ pub struct StdioConfig {
     pub env_file: Option<String>,
 }
 
-/// Configuration for an SSE-based MCP server
+/// Configuration for an SSE-based MCP server (DEPRECATED - use HTTP instead)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SseConfig {
     /// URL of the server
@@ -34,6 +34,25 @@ pub struct SseConfig {
     pub headers: HashMap<String, String>,
 }
 
+/// Configuration for a streamable HTTP-based MCP server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StreamableHttpConfig {
+    /// URL of the server
+    pub url: String,
+
+    /// HTTP headers for the server
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+
+    /// Timeout for HTTP requests in seconds
+    #[serde(default = "default_timeout")]
+    pub timeout_seconds: u64,
+}
+
+fn default_timeout() -> u64 {
+    30
+}
+
 /// Configuration for an MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -42,6 +61,8 @@ pub enum McpServerConfig {
     Stdio(StdioConfig),
     #[serde(rename = "sse")]
     Sse(SseConfig),
+    #[serde(rename = "http")]
+    Http(StreamableHttpConfig),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
