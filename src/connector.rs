@@ -35,7 +35,7 @@ async fn initialize_mcp_clients(
     // Initialize clients
     for (server_name, server_config) in &configuration.servers {
         // Create MCP client
-        let peer = create_mcp_client(server_config).await.map_err(|e| {
+        let service = create_mcp_client(server_config).await.map_err(|e| {
             ErrorResponse::new(
                 StatusCode::BAD_REQUEST,
                 format!("Failed to create MCP client: {}", e),
@@ -45,26 +45,32 @@ async fn initialize_mcp_clients(
 
         // List resources (only if server supports resources)
         let mut resources = HashMap::new();
-        if let Ok(resources_result) = peer.list_resources(Some(rmcp::model::PaginatedRequestParamInner::default())).await {
-            for resource in resources_result.resources {
-                resources.insert(resource.raw.name.clone(), resource);
+        match service.list_all_resources().await {
+            Ok(resources_result) => {
+                for resource in resources_result {
+                    resources.insert(resource.raw.name.clone(), resource);
+                }
             }
-        } else {
-            tracing::info!("Server {} does not support resources", server_name.0);
+            Err(err) => {
+                tracing::info!("Server {} does not support resources. Error {err}", server_name.0);
+            }
         }
 
         // List tools (only if server supports tools)
         let mut tools = HashMap::new();
-        if let Ok(tools_result) = peer.list_tools(Some(rmcp::model::PaginatedRequestParamInner::default())).await {
-            for tool in tools_result.tools {
-                tools.insert(tool.name.to_string(), tool);
+        match service.list_all_tools().await {
+            Ok(tools_result) => {
+                for tool in tools_result {
+                    tools.insert(tool.name.to_string(), tool);
+                }
             }
-        } else {
-            tracing::info!("Server {} does not support tools", server_name.0);
+            Err(err) => {
+                tracing::info!("Server {} does not support tools. Error {err}", server_name.0);
+            }
         }
         // Create client
         let client = McpClient {
-            peer,
+            service,
             config: server_config.clone(),
             resources,
             tools,
@@ -81,6 +87,14 @@ async fn initialize_mcp_clients(
 impl Connector for McpConnector {
     type Configuration = ConnectorConfig;
     type State = Arc<ConnectorState>;
+
+    fn connector_name() -> &'static str {
+        "mcp-rs"
+    }
+
+    fn connector_version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
 
     fn fetch_metrics(
         _configuration: &Self::Configuration,
@@ -120,6 +134,8 @@ impl Connector for McpConnector {
                 transactional: None,
                 explain: None,
             },
+            relational_query: None,
+            relational_mutation: None,
         }
     }
 
@@ -197,7 +213,7 @@ impl Connector for McpConnector {
                 uri: resource.raw.uri.clone(),
             };
 
-            let result = client.peer.read_resource(read_request).await.map_err(|e| {
+            let result = client.service.read_resource(read_request).await.map_err(|e| {
                 ErrorResponse::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Failed to read resource: {}", e),
@@ -241,7 +257,7 @@ impl Connector for McpConnector {
                 },
             };
 
-            let result = client.peer.call_tool(call_request).await.map_err(|e| {
+            let result = client.service.call_tool(call_request).await.map_err(|e| {
                 ErrorResponse::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Failed to execute tool: {}", e),
@@ -351,7 +367,7 @@ impl Connector for McpConnector {
                         },
                     };
 
-                    let result = client.peer.call_tool(call_request).await.map_err(|e| {
+                    let result = client.service.call_tool(call_request).await.map_err(|e| {
                         ErrorResponse::new(
                             StatusCode::INTERNAL_SERVER_ERROR,
                             format!("Failed to execute tool: {}", e),

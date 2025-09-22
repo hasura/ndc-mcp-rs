@@ -69,6 +69,7 @@ fn map_resources_to_collections(
             arguments: BTreeMap::new(), // No arguments for collections
             collection_type: "ResourceOutput".to_string().into(),
             uniqueness_constraints: BTreeMap::new(),
+            relational_mutations: None,
         };
 
         collections.push(collection);
@@ -93,7 +94,7 @@ fn map_tools_to_functions(
             // Create function info with server_name prefix
             let function = FunctionInfo {
                 name: format!("{}__{}", server_name.0, tool_id).into(),
-                description: Some(tool.description.to_string()),
+                description: tool.description.as_ref().map(|d| d.to_string()),
                 arguments,
                 result_type: Type::Named {
                     name: "ToolOutput".to_string().into(),
@@ -123,7 +124,7 @@ fn map_tools_to_procedures(
             // Create procedure info with server_name prefix
             let procedure = ProcedureInfo {
                 name: format!("{}__{}", server_name.0, tool_id).into(),
-                description: Some(tool.description.to_string()),
+                description: tool.description.as_ref().map(|d| d.to_string()),
                 arguments,
                 result_type: Type::Named {
                     name: "ToolOutput".to_string().into(),
@@ -296,5 +297,6 @@ pub fn generate_schema(state: &ConnectorState) -> models::SchemaResponse {
         object_types: typed_object_types,
         scalar_types,
         capabilities: None,
+        request_arguments: None,
     }
 }
