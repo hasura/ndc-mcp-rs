@@ -1,35 +1,31 @@
 use anyhow::{Result, anyhow};
-use rmcp::{service::Peer, RoleClient, ServiceExt, transport::TokioChildProcess};
+use rmcp::{service::RunningService, RoleClient, ServiceExt, transport::TokioChildProcess};
 use tokio::process::Command;
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::config::McpServerConfig;
+use crate::config::StdioConfig;
 
 /// Create an MCP client using stdio transport
-pub async fn create_stdio_client(config: &McpServerConfig) -> Result<Peer<RoleClient>> {
+pub async fn create_stdio_client(config: &StdioConfig) -> Result<RunningService<RoleClient, ()>> {
     // Extract fields from the config
-    let child_process = if let McpServerConfig::Stdio(stdio_config) = config {
-        // Build command
-        let mut cmd = Command::new(&stdio_config.command);
-        cmd.args(&stdio_config.args);
+    // Build command
+    let mut cmd = Command::new(&config.command);
+    cmd.args(&config.args);
 
-        // Add environment variables
-        for (key, value) in &stdio_config.env {
-            cmd.env(key, value);
-        }
+    // Add environment variables
+    for (key, value) in &config.env {
+        cmd.env(key, value);
+    }
 
-        // Load environment variables from file if specified
-        if let Some(env_file) = &stdio_config.env_file {
-            load_env_file(env_file, &mut cmd)?;
-        }
+    // Load environment variables from file if specified
+    if let Some(env_file) = &config.env_file {
+        load_env_file(env_file, &mut cmd)?;
+    }
 
-        // Create the child process
-        TokioChildProcess::new(&mut cmd)
-            .map_err(|e| anyhow!("Failed to start MCP server: {}", e))?
-    } else {
-        return Err(anyhow!("Invalid server configuration type for stdio transport"));
-    };
+    // Create the child process
+    let child_process = TokioChildProcess::new(cmd)
+        .map_err(|e| anyhow!("Failed to start MCP server: {}", e))?;
 
     // Create and initialize the client with timeout
     let service = tokio::time::timeout(
@@ -39,10 +35,7 @@ pub async fn create_stdio_client(config: &McpServerConfig) -> Result<Peer<RoleCl
     .map_err(|_| anyhow!("Timeout during MCP service initialization"))?
     .map_err(|e| anyhow!("Failed to initialize MCP service: {}", e))?;
 
-    // Extract the peer from the service
-    let peer = service.peer().clone();
-
-    Ok(peer)
+    Ok(service)
 }
 
 /// Load environment variables from a .env file
