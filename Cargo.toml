@@ -9,10 +9,6 @@ authors = ["Hasura"]
 name = "mcp-connector"
 path = "src/main.rs"
 
-[[bin]]
-name = "mcp-connector-cli"
-path = "src/cli.rs"
-
 [dependencies]
 # NDC SDK
 ndc-sdk = { git = "https://github.com/hasura/ndc-sdk-rs", rev = "0e40ebfc1bdc2cfb7cdcd089662c5f3b2df3bc3b"}
@@ -38,11 +34,9 @@ reqwest = { version = "0.11", features = ["json", "stream"] }
 http = "0.2"
 
 # Utilities
-clap = { version = "4.4", features = ["derive"] }
 url = "2.4"
 dotenv = "0.15"
 async-trait = "0.1.74"
 prometheus = "0.13"
 indexmap = "2.9"
 schemars = "0.8"
-serde_yaml = "0.9"

@@ -44,7 +44,7 @@ COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/tmp/target \
-    CARGO_TARGET_DIR=/tmp/target cargo chef cook --release --bin mcp-connector --bin mcp-connector-cli --recipe-path recipe.json
+    CARGO_TARGET_DIR=/tmp/target cargo chef cook --release --bin mcp-connector --recipe-path recipe.json
 
 # Copy source code
 COPY Cargo.toml Cargo.lock ./
@@ -53,10 +53,9 @@ COPY src/ ./src/
 # Build the application and copy binaries to persistent location
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/tmp/target \
-    CARGO_TARGET_DIR=/tmp/target cargo build --release --bin mcp-connector --bin mcp-connector-cli && \
+    CARGO_TARGET_DIR=/tmp/target cargo build --release --bin mcp-connector && \
     mkdir -p /app/bin && \
-    cp /tmp/target/release/mcp-connector /app/bin/mcp-connector && \
-    cp /tmp/target/release/mcp-connector-cli /app/bin/mcp-connector-cli
+    cp /tmp/target/release/mcp-connector /app/bin/mcp-connector
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -74,8 +73,7 @@ RUN useradd -m -u 1000 connector
 
 # Copy the binary from builder stage
 COPY --from=builder /app/bin/mcp-connector /bin/mcp-connector
-COPY --from=builder /app/bin/mcp-connector-cli /bin/mcp-connector-cli
-RUN chmod +x /bin/mcp-connector /bin/mcp-connector-cli
+RUN chmod +x /bin/mcp-connector
 
 
 # Create configuration directory

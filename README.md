@@ -21,49 +21,43 @@ A Native Data Connector (NDC) that bridges Hasura DDN with Model Context Protoco
    cargo build
    ```
 
-2. **Configure servers** in `configuration/servers.yaml`:
+2. **Configure servers** in `configuration/configuration.json`:
 
-   ```yaml
-   servers:
-     filesystem:
-       type: stdio
-       command: npx
-       args:
-         ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/directory"]
-
-     remote:
-       type: http
-       url: "http://localhost:8080/mcp"
-       headers:
-         Authorization: "Bearer your-token"
-       timeout_seconds: 30
+   ```json
+   {
+     "servers": {
+       "filesystem": {
+         "type": "stdio",
+         "command": "npx",
+         "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/directory"]
+       },
+       "remote": {
+         "type": "http",
+         "url": "http://localhost:8080/mcp",
+         "headers": {
+           "Authorization": "Bearer your-token"
+         },
+         "timeout_seconds": 30
+       }
+     }
+   }
    ```
 
-3. **Generate configuration**:
-
-   ```bash
-   just generate-config
-   # or: cargo run --bin mcp-connector-cli -- --configuration configuration update --outfile configuration/configuration.json
-   ```
-
-4. **Start the connector**:
+3. **Start the connector**:
 
    ```bash
    just serve
    # or: cargo run --bin mcp-connector -- serve --configuration configuration
    ```
 
-5. **Test the schema**:
+4. **Test the schema**:
    ```bash
    curl http://localhost:8080/schema | jq
    ```
 
 ## Configuration
 
-The connector uses a two-step configuration process:
-
-1. **servers.yaml**: Define your MCP servers (this is what you edit)
-2. **configuration.json**: Generated automatically by introspecting the MCP servers
+The connector uses a single configuration file `configuration/configuration.json` where you define your MCP servers. The connector automatically introspects the servers at startup to discover available resources and tools.
 
 ### Transport Types
 
@@ -82,8 +76,8 @@ just format
 # Run clippy
 just clippy
 
-# Generate config and serve
-just generate-config && just serve
+# Serve the connector
+just serve
 ```
 
 ## Prerequisites
