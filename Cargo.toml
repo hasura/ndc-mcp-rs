@@ -10,7 +10,7 @@ authors = ["Hasura"]
 ndc-sdk = { git = "https://github.com/hasura/ndc-sdk-rs", rev = "0e40ebfc1bdc2cfb7cdcd089662c5f3b2df3bc3b"}
 
 # MCP client library
-rmcp = { version = "0.6.4", features = ["client", "transport-child-process"] }
+rmcp = { version = "0.6.4", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }

@@ -24,6 +24,6 @@ pub async fn create_sse_client(config: &SseConfig) -> Result<RunningService<Role
         _headers.insert(header_name, header_value);
     }
 
-    // For now, return an error since we need to implement SSE transport properly
-    Err(anyhow!("SSE transport not yet implemented"))
+    // SSE transport is deprecated in favor of streamable HTTP transport
+    Err(anyhow!("SSE transport is deprecated. Please use 'http' transport type instead for streamable HTTP transport."))
 }
