@@ -6,4 +6,4 @@ target/
 .env.*
 
 # Configuration files
-<!-- configuration/ -->
+configuration/
