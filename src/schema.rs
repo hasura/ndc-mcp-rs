@@ -6,8 +6,7 @@ use rmcp::model::{Resource, Tool};
 use schemars::schema::ObjectValidation;
 use std::collections::{BTreeMap, HashMap};
 
-use crate::config::McpServerName;
-use crate::state::ConnectorState;
+use crate::config::{ConnectorConfig, McpServerName};
 
 /// Check if a tool is read-only based on annotations
 fn is_read_only_tool(tool: &Tool) -> bool {
@@ -251,13 +250,13 @@ fn create_scalar_types() -> BTreeMap<models::ScalarTypeName, models::ScalarType>
 }
 
 /// Generate the NDC schema from the connector state
-pub fn generate_schema(state: &ConnectorState) -> models::SchemaResponse {
+pub fn generate_schema(config: &ConnectorConfig) -> models::SchemaResponse {
     let mut collections = Vec::new();
     let mut functions = Vec::new();
     let mut procedures = Vec::new();
 
     // Process each MCP client
-    for (server_name, client) in &state.clients {
+    for (server_name, client) in &config.servers {
         // Add error handling for empty tools/resources
         if client.tools.is_empty() && client.resources.is_empty() {
             tracing::warn!("MCP server {} has no tools or resources", server_name.0);

@@ -20,7 +20,7 @@ pub async fn create_http_client(
     let mut http_config = StreamableHttpClientTransportConfig::with_uri(config.url.clone());
     // set auth header if present
     if let Some(auth_header) = auth_header {
-        http_config = http_config.auth_header(auth_header);
+        http_config = http_config.auth_header(auth_header.resolve()?);
     }
     // Create streamable HTTP transport using the reqwest client
     let transport = StreamableHttpClientTransport::from_config(http_config);

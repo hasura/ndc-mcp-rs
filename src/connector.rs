@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use http::StatusCode;
 use indexmap::IndexMap;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -13,7 +14,10 @@ use ndc_sdk::connector::{Connector, ConnectorSetup};
 use ndc_sdk::json_response::JsonResponse;
 use ndc_sdk::models;
 
-use crate::config::{ConnectorConfig, McpServerName};
+use crate::config::{
+    ConnectorConfig, EnvVariableValue, McpServerConfig, McpServerName, StdioConfig,
+    StreamableHttpConfig,
+};
 use crate::schema::generate_schema;
 use crate::state::{ConnectorState, McpClient};
 use crate::transport::create_mcp_client;
@@ -117,11 +121,8 @@ impl Connector for McpConnector {
     async fn get_schema(
         configuration: &Self::Configuration,
     ) -> Result<JsonResponse<models::SchemaResponse>, ErrorResponse> {
-        // Initialize MCP clients and build schema
-        let state = initialize_mcp_clients(configuration).await?;
-
         // Generate schema from state
-        Ok(generate_schema(&state).into())
+        Ok(generate_schema(configuration).into())
     }
 
     async fn query_explain(
@@ -390,6 +391,19 @@ impl ConnectorSetup for McpConnectorSetup {
                 serde_json::Value::Null,
             )
         })?;
+
+        // Let's validate the env variables
+        for server in config.servers.values() {
+            match &server.config {
+                McpServerConfig::Stdio(StdioConfig { env, .. }) => {
+                    validate_env_variables(env)?;
+                }
+                McpServerConfig::Http(StreamableHttpConfig { headers, .. }) => {
+                    validate_env_variables(headers)?;
+                }
+                _ => {}
+            }
+        }
         Ok(config)
     }
 
@@ -402,4 +416,17 @@ impl ConnectorSetup for McpConnectorSetup {
         let state = initialize_mcp_clients(configuration).await?;
         Ok(Arc::new(state))
     }
+}
+
+fn validate_env_variables(env: &HashMap<String, EnvVariableValue>) -> Result<(), ErrorResponse> {
+    for (key, value) in env {
+        value.resolve().map_err(|e| {
+            ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                format!("Failed to resolve environment variable {}: {}", key, e),
+                serde_json::Value::Null,
+            )
+        })?;
+    }
+    Ok(())
 }

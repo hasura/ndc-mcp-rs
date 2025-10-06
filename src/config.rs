@@ -13,6 +13,26 @@ use super::transport::create_mcp_client;
 pub static CONFIG_FILE_NAME: &str = "configuration.json";
 pub static SERVERS_FILE_NAME: &str = "servers.yaml";
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EnvVariableValue {
+    Literal(String),
+    FromEnv {
+        #[serde(rename = "fromEnv")]
+        from_env: String,
+    },
+}
+
+impl EnvVariableValue {
+    pub fn resolve(&self) -> Result<String> {
+        match self {
+            EnvVariableValue::Literal(value) => Ok(value.clone()),
+            EnvVariableValue::FromEnv { from_env } => std::env::var(from_env)
+                .map_err(|_| anyhow!("Environment variable {} not found", from_env)),
+        }
+    }
+}
+
 /// Configuration for a stdio-based MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StdioConfig {
@@ -25,7 +45,7 @@ pub struct StdioConfig {
 
     /// Environment variables for the server
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    pub env: HashMap<String, EnvVariableValue>,
 
     /// Path to an .env file from which to load additional environment variables
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -51,7 +71,7 @@ pub struct StreamableHttpConfig {
 
     /// HTTP headers for the server
     #[serde(default)]
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<String, EnvVariableValue>,
 
     /// Timeout for HTTP requests in seconds
     #[serde(default = "default_timeout")]
