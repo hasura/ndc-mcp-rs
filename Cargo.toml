@@ -5,6 +5,10 @@ edition = "2021"
 description = "NDC connector for MCP (Model Context Protocol)"
 authors = ["Hasura"]
 
+[[bin]]
+name = "mcp-connector"
+path = "src/main.rs"
+
 [dependencies]
 # NDC SDK
 ndc-sdk = { git = "https://github.com/hasura/ndc-sdk-rs", rev = "0e40ebfc1bdc2cfb7cdcd089662c5f3b2df3bc3b"}
