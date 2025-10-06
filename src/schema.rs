@@ -17,7 +17,8 @@ fn is_read_only_tool(tool: &Tool) -> bool {
         || name.starts_with("list")
         || name.starts_with("find")
         || name.starts_with("search")
-        || tool // Check if the tool has annotations and if the read_only_hint is true
+        // Check if the tool has annotations and if the read_only_hint is true
+        || tool
             .annotations
             .as_ref()
             .and_then(|annotations| annotations.read_only_hint)
