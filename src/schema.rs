@@ -3,7 +3,7 @@ use ndc_sdk::models::{
     ProcedureInfo, Type,
 };
 use rmcp::model::{Resource, Tool};
-use schemars::schema::ObjectValidation;
+use schemars::schema::{InstanceType, ObjectValidation, Schema, SingleOrVec};
 use std::collections::{BTreeMap, HashMap};
 
 use crate::config::McpServerName;
@@ -26,6 +26,82 @@ fn is_read_only_tool(tool: &Tool) -> bool {
             .unwrap_or(false)
 }
 
+/// Map JSON schema type to NDC type
+fn map_schema_to_ndc_type(schema: &Schema) -> Type {
+    match schema {
+        Schema::Bool(true) => Type::Named {
+            name: "Json".to_string().into(),
+        },
+        Schema::Bool(false) => Type::Named {
+            name: "String".to_string().into(), // Fallback for false schema
+        },
+        Schema::Object(schema_obj) => {
+            if let Some(instance_type) = &schema_obj.instance_type {
+                match instance_type {
+                    SingleOrVec::Single(instance_type) => match instance_type.as_ref() {
+                        InstanceType::String => Type::Named {
+                            name: "String".to_string().into(),
+                        },
+                        InstanceType::Number => Type::Named {
+                            name: "Float".to_string().into(),
+                        },
+                        InstanceType::Integer => Type::Named {
+                            name: "Int".to_string().into(),
+                        },
+                        InstanceType::Boolean => Type::Named {
+                            name: "Boolean".to_string().into(),
+                        },
+                        InstanceType::Array => {
+                            // For arrays, we'll use Json type for simplicity
+                            // In a more sophisticated implementation, we could parse the items schema
+                            Type::Named {
+                                name: "Json".to_string().into(),
+                            }
+                        }
+                        InstanceType::Object => Type::Named {
+                            name: "Json".to_string().into(),
+                        },
+                        InstanceType::Null => Type::Named {
+                            name: "Json".to_string().into(),
+                        },
+                    },
+                    SingleOrVec::Vec(types) => {
+                        // For multiple types, use Json as a fallback
+                        if types.len() == 1 {
+                            match &types[0] {
+                                InstanceType::String => Type::Named {
+                                    name: "String".to_string().into(),
+                                },
+                                InstanceType::Number => Type::Named {
+                                    name: "Float".to_string().into(),
+                                },
+                                InstanceType::Integer => Type::Named {
+                                    name: "Int".to_string().into(),
+                                },
+                                InstanceType::Boolean => Type::Named {
+                                    name: "Boolean".to_string().into(),
+                                },
+                                _ => Type::Named {
+                                    name: "Json".to_string().into(),
+                                },
+                            }
+                        } else {
+                            Type::Named {
+                                name: "Json".to_string().into(),
+                            }
+                        }
+                    }
+                }
+            } else {
+                // No instance type specified, default to Json
+                Type::Named {
+                    name: "Json".to_string().into(),
+                }
+            }
+        }
+    }
+}
+
 fn tool_arguments_schema(
     input_schema: &rmcp::model::JsonObject,
 ) -> BTreeMap<ArgumentName, ArgumentInfo> {
@@ -37,10 +113,8 @@ fn tool_arguments_schema(
     for (property_name, property) in input_schema.properties {
         // Build argument name
         let argument_name = ArgumentName::new(property_name.as_str().into());
-        // Use "String" type for all arguments
-        let mut argument_type = Type::Named {
-            name: "String".to_string().into(),
-        };
+        // Map JSON schema type to NDC type
+        let mut argument_type = map_schema_to_ndc_type(&property);
         if !input_schema.required.contains(&property_name) {
             argument_type = Type::Nullable {
                 underlying_type: Box::new(argument_type),
@@ -236,6 +310,39 @@ fn create_scalar_types() -> BTreeMap<models::ScalarTypeName, models::ScalarType>
         "String".to_string().into(),
         models::ScalarType {
             representation: models::TypeRepresentation::String,
+            aggregate_functions: BTreeMap::new(),
+            comparison_operators: BTreeMap::new(),
+            extraction_functions: BTreeMap::new(),
+        },
+    );
+
+    // Add Boolean scalar type
+    scalar_types.insert(
+        "Boolean".to_string().into(),
+        models::ScalarType {
+            representation: models::TypeRepresentation::Boolean,
+            aggregate_functions: BTreeMap::new(),
+            comparison_operators: BTreeMap::new(),
+            extraction_functions: BTreeMap::new(),
+        },
+    );
+
+    // Add Int scalar type
+    scalar_types.insert(
+        "Int".to_string().into(),
+        models::ScalarType {
+            representation: models::TypeRepresentation::Int32,
+            aggregate_functions: BTreeMap::new(),
+            comparison_operators: BTreeMap::new(),
+            extraction_functions: BTreeMap::new(),
+        },
+    );
+
+    // Add Float scalar type
+    scalar_types.insert(
+        "Float".to_string().into(),
+        models::ScalarType {
+            representation: models::TypeRepresentation::Float64,
             aggregate_functions: BTreeMap::new(),
             comparison_operators: BTreeMap::new(),
             extraction_functions: BTreeMap::new(),
