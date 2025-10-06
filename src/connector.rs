@@ -89,7 +89,7 @@ impl Connector for McpConnector {
     type State = Arc<ConnectorState>;
 
     fn connector_name() -> &'static str {
-        "mcp-rs"
+        "mcp-connector"
     }
 
     fn connector_version() -> &'static str {
@@ -403,7 +403,7 @@ impl ConnectorSetup for McpConnectorSetup {
         configuration_dir: &Path,
     ) -> Result<<Self::Connector as Connector>::Configuration, ErrorResponse> {
         // Load configuration from file
-        let config_path = configuration_dir.join("config.json");
+        let config_path = configuration_dir.join("configuration.json");
         let config = ConnectorConfig::from_file(&config_path).map_err(|e| {
             ErrorResponse::new(
                 StatusCode::BAD_REQUEST,
