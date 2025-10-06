@@ -1,5 +1,17 @@
 # Rust build artifacts
 target/
+**/*.rs.bk
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
 
 # Environment files
 .env
@@ -7,3 +19,21 @@ target/
 
 # Configuration files
 configuration/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+test_data/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,7 +1,11 @@
 # Multi-stage build for a Rust-based MCP connector for Hasura DDN Engine
 
-# Build stage
-FROM rust:1.85.0-slim-bookworm AS builder
+# Chef stage - base image with cargo-chef installed
+FROM rust:1.85.0-slim-bookworm AS chef
+
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies required for building
 RUN apt-get update && apt-get install -y \
@@ -12,16 +16,46 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+# Set up Cargo environment
+ENV CARGO_HOME=/app/.cargo
+ENV PATH="$PATH:$CARGO_HOME/bin"
 
-# Copy dependency files first for better caching
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+# Install Rust tools
+COPY rust-toolchain.toml .
+RUN rustup show
+RUN cargo install cargo-chef
+
+###
+# Planner stage - prepare the recipe
+FROM chef AS planner
+
+# Copy dependency files
+COPY Cargo.toml Cargo.lock ./
+
+# Prepare the recipe
+RUN cargo chef prepare --recipe-path recipe.json
+
+###
+# Builder stage - build dependencies then application
+FROM chef AS builder
+
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies - this is the caching Docker layer!
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --bin mcp-connector --bin mcp-connector-cli --recipe-path recipe.json
+
+# Copy source code
+COPY Cargo.toml Cargo.lock ./
 COPY src/ ./src/
 
-# Build the application in release mode
-# The main binary is mcp-connector based on the Cargo.toml configuration
-RUN cargo build --release --bin mcp-connector --bin mcp-connector-cli
+# Build the application and copy binaries to persistent location
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --bin mcp-connector --bin mcp-connector-cli && \
+    cp /app/target/release/mcp-connector /app/mcp-connector && \
+    cp /app/target/release/mcp-connector-cli /app/mcp-connector-cli
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -38,8 +72,8 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 connector
 
 # Copy the binary from builder stage
-COPY --from=builder /app/target/release/mcp-connector /bin/mcp-connector
-COPY --from=builder /app/target/release/mcp-connector-cli /bin/mcp-connector-cli
+COPY --from=builder /app/mcp-connector /bin/mcp-connector
+COPY --from=builder /app/mcp-connector-cli /bin/mcp-connector-cli
 RUN chmod +x /bin/mcp-connector /bin/mcp-connector-cli
 
 
