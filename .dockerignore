@@ -1,0 +1,9 @@
+# Rust build artifacts
+target/
+
+# Environment files
+.env
+.env.*
+
+# Configuration files
+configuration/

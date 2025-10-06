@@ -1,8 +1,8 @@
-use anyhow::{Result, anyhow};
-use rmcp::{service::RunningService, RoleClient, ServiceExt, transport::TokioChildProcess};
-use tokio::process::Command;
+use anyhow::{anyhow, Result};
+use rmcp::{service::RunningService, transport::TokioChildProcess, RoleClient, ServiceExt};
 use std::collections::HashMap;
 use std::path::Path;
+use tokio::process::Command;
 
 use crate::config::StdioConfig;
 
@@ -24,16 +24,14 @@ pub async fn create_stdio_client(config: &StdioConfig) -> Result<RunningService<
     }
 
     // Create the child process
-    let child_process = TokioChildProcess::new(cmd)
-        .map_err(|e| anyhow!("Failed to start MCP server: {}", e))?;
+    let child_process =
+        TokioChildProcess::new(cmd).map_err(|e| anyhow!("Failed to start MCP server: {}", e))?;
 
     // Create and initialize the client with timeout
-    let service = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        ().serve(child_process)
-    ).await
-    .map_err(|_| anyhow!("Timeout during MCP service initialization"))?
-    .map_err(|e| anyhow!("Failed to initialize MCP service: {}", e))?;
+    let service = tokio::time::timeout(std::time::Duration::from_secs(10), ().serve(child_process))
+        .await
+        .map_err(|_| anyhow!("Timeout during MCP service initialization"))?
+        .map_err(|e| anyhow!("Failed to initialize MCP service: {}", e))?;
 
     Ok(service)
 }

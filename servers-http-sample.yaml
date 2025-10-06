@@ -1,0 +1,14 @@
+servers:
+  filesystem:
+    type: stdio
+    command: mcp-filesystem-server
+    args:
+      - "/home/rakesh/Downloads"
+    env:
+      DEBUG: "true"
+  remote_mcp_server:
+    type: http
+    url: "http://localhost:8080/mcp"
+    headers:
+      Authorization: "Bearer your-token-here"
+    timeout_seconds: 30

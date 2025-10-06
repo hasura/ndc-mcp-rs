@@ -1,0 +1,29 @@
+version: v2
+ndcSpecGeneration: v0.2
+packagingDefinition:
+  type: ManagedDockerBuild
+supportedEnvironmentVariables: []
+commands:
+  update:
+    type: Dockerized
+    dockerImage: ghcr.io/hasura/mcp-connector:v0.1.0
+    commandArgs:
+      - "mcp-connector-cli"
+      - "update"
+      - "--outfile"
+      - "/etc/connector/configuration.json"
+cliPlugin:
+  type: Docker
+  dockerImage: ghcr.io/hasura/mcp-connector:v0.1.0
+dockerComposeWatch:
+  # Rebuild the container if a new package restore is required because Cargo.toml or Cargo.lock changed
+  - path: Cargo.toml
+    target: /app/Cargo.toml
+    action: rebuild
+  - path: Cargo.lock
+    target: /app/Cargo.lock
+    action: rebuild
+  # For any other file change, simply copy it into the existing container and restart it
+  - path: ./
+    target: /app
+    action: sync+restart

@@ -5,6 +5,14 @@ edition = "2021"
 description = "NDC connector for MCP (Model Context Protocol)"
 authors = ["Hasura"]
 
+[[bin]]
+name = "mcp-connector"
+path = "src/main.rs"
+
+[[bin]]
+name = "mcp-connector-cli"
+path = "src/cli.rs"
+
 [dependencies]
 # NDC SDK
 ndc-sdk = { git = "https://github.com/hasura/ndc-sdk-rs", rev = "0e40ebfc1bdc2cfb7cdcd089662c5f3b2df3bc3b"}
@@ -21,14 +29,11 @@ serde_json = "1.0"
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # HTTP client/server
-axum = "0.7"
 reqwest = { version = "0.11", features = ["json", "stream"] }
 http = "0.2"
 
@@ -36,8 +41,8 @@ http = "0.2"
 clap = { version = "4.4", features = ["derive"] }
 url = "2.4"
 dotenv = "0.15"
-futures = "0.3"
 async-trait = "0.1.74"
 prometheus = "0.13"
 indexmap = "2.9"
 schemars = "0.8"
+serde_yaml = "0.9"
