@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use http::StatusCode;
 use indexmap::IndexMap;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -35,7 +34,7 @@ async fn initialize_mcp_clients(
     // Initialize clients
     for (server_name, server_config) in &configuration.servers {
         // Create MCP client
-        let service = create_mcp_client(server_config).await.map_err(|e| {
+        let service = create_mcp_client(&server_config.config).await.map_err(|e| {
             ErrorResponse::new(
                 StatusCode::BAD_REQUEST,
                 format!("Failed to create MCP client: {}", e),
@@ -43,37 +42,11 @@ async fn initialize_mcp_clients(
             )
         })?;
 
-        // List resources (only if server supports resources)
-        let mut resources = HashMap::new();
-        match service.list_all_resources().await {
-            Ok(resources_result) => {
-                for resource in resources_result {
-                    resources.insert(resource.raw.name.clone(), resource);
-                }
-            }
-            Err(err) => {
-                tracing::info!("Server {} does not support resources. Error {err}", server_name.0);
-            }
-        }
-
-        // List tools (only if server supports tools)
-        let mut tools = HashMap::new();
-        match service.list_all_tools().await {
-            Ok(tools_result) => {
-                for tool in tools_result {
-                    tools.insert(tool.name.to_string(), tool);
-                }
-            }
-            Err(err) => {
-                tracing::info!("Server {} does not support tools. Error {err}", server_name.0);
-            }
-        }
         // Create client
         let client = McpClient {
             service,
-            config: server_config.clone(),
-            resources,
-            tools,
+            resources: server_config.resources.clone(),
+            tools: server_config.tools.clone(),
         };
 
         // Add client to state

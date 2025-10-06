@@ -21,7 +21,7 @@ COPY src/ ./src/
 
 # Build the application in release mode
 # The main binary is mcp-connector based on the Cargo.toml configuration
-RUN cargo build --release --bin mcp-connector
+RUN cargo build --release --bin mcp-connector --bin mcp-connector-cli
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -31,25 +31,23 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
     libprotobuf32 \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
 # Create a non-root user for security
-RUN groupadd -r connector && useradd -r -g connector connector
+RUN useradd -m -u 1000 connector
 
 # Copy the binary from builder stage
 COPY --from=builder /app/target/release/mcp-connector /bin/mcp-connector
+COPY --from=builder /app/target/release/mcp-connector-cli /bin/mcp-connector-cli
+RUN chmod +x /bin/mcp-connector /bin/mcp-connector-cli
 
-# Set ownership and permissions
-RUN chown connector:connector /bin/mcp-connector && \
-    chmod +x /bin/mcp-connector
 
 # Create configuration directory
 RUN mkdir -p /etc/connector && \
     chown connector:connector /etc/connector
-
-# Copy configuration file
-COPY configuration/config.json /etc/connector/config.json
 
 # Switch to non-root user
 USER connector

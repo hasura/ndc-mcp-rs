@@ -1,8 +1,14 @@
+use rmcp::{model::{ErrorCode, ErrorData}, ServiceError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use std::fs;
+
+use super::transport::create_mcp_client;
+
+pub static CONFIG_FILE_NAME: &str = "configuration.json";
+pub static SERVERS_FILE_NAME: &str = "servers.yaml";
 
 /// Configuration for a stdio-based MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,11 +75,19 @@ pub enum McpServerConfig {
 #[serde(transparent)]
 pub struct McpServerName(pub String);
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServer {
+    pub config: McpServerConfig,
+    pub resources: HashMap<String, rmcp::model::Resource>,
+    pub tools: HashMap<String, rmcp::model::Tool>,
+}
+
 /// Configuration for the NDC MCP connector
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectorConfig {
     /// List of MCP servers
-    pub servers: HashMap<McpServerName, McpServerConfig>,
+    pub servers: HashMap<McpServerName, McpServer>,
 }
 
 impl ConnectorConfig {
@@ -83,4 +97,64 @@ impl ConnectorConfig {
         let config: ConnectorConfig = serde_json::from_str(&content)?;
         Ok(config)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Servers {
+    pub servers: HashMap<McpServerName, McpServerConfig>,
+}
+
+pub async fn generate_config(servers: Servers) -> Result<ConnectorConfig> {
+    let mut server_configs: HashMap<McpServerName, McpServer> = HashMap::new();
+    for (server_name, server_config) in servers.servers {
+        // Create MCP client
+        let service = create_mcp_client(&server_config).await.map_err(|e| {
+            anyhow!("Failed to create MCP client for server {}: {}", server_name.0, e)
+        })?;
+
+        // List resources (only if server supports resources)
+        let mut resources = HashMap::new();
+
+        match service.list_all_resources().await {
+            Ok(resources_result) => {
+                for resource in resources_result {
+                    resources.insert(resource.raw.name.clone(), resource);
+                }
+            },
+            Err(err) => {
+                let err_message = format!("Failed to list resources for server {}: {}", server_name.0, err);
+                if !is_method_not_found_error(&err) {
+                    return Err(anyhow!(err_message));
+                }
+            }
+        }
+
+        // List tools (only if server supports tools)
+        let mut tools = HashMap::new();
+        match service.list_all_tools().await {
+            Ok(tools_result) => {
+                for tool in tools_result {
+                    tools.insert(tool.name.to_string(), tool);
+                }
+            },
+            Err(err) => {
+                let err_message = format!("Failed to list tools for server {}: {}", server_name.0, err);
+                if !is_method_not_found_error(&err) {
+                    return Err(anyhow!(err_message));
+                }
+            }
+        }
+
+        // Add server config to the list
+        server_configs.insert(server_name.clone(), McpServer {
+            config: server_config,
+            resources,
+            tools,
+        });
+    }
+    Ok(ConnectorConfig { servers: server_configs })
+}
+
+fn is_method_not_found_error(err: &ServiceError) -> bool {
+    matches!(err, ServiceError::McpError(ErrorData { code: ErrorCode::METHOD_NOT_FOUND, .. }))
 }

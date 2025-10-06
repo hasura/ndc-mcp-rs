@@ -1,15 +1,12 @@
 use std::collections::HashMap;
 use rmcp::{model::{Resource, Tool}, service::RunningService, RoleClient};
 
-use crate::config::{McpServerConfig, McpServerName};
+use crate::config::McpServerName;
 
 /// Represents a connected MCP client
 pub struct McpClient {
     /// The service connection to the MCP server
     pub service: RunningService<RoleClient, ()>,
-    /// The configuration used to connect to this server
-    #[allow(dead_code)]
-    pub config: McpServerConfig,
     /// Resources provided by this server
     pub resources: HashMap<String, Resource>,
     /// Tools provided by this server

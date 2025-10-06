@@ -1,11 +1,7 @@
-mod config;
-mod connector;
-mod schema;
-mod state;
-mod transport;
-
 use std::process::ExitCode;
 use ndc_sdk::default_main::default_main_with;
+
+use ndc_mcp_rs::connector;
 
 /// Run the NDC MCP connector using the default_main_with function from ndc-sdk
 #[tokio::main]
