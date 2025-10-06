@@ -15,7 +15,7 @@ pub async fn create_stdio_client(config: &StdioConfig) -> Result<RunningService<
 
     // Add environment variables
     for (key, value) in &config.env {
-        cmd.env(key, value);
+        cmd.env(key, value.resolve()?);
     }
 
     // Load environment variables from file if specified
