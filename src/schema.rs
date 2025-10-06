@@ -310,8 +310,10 @@ fn create_object_types() -> BTreeMap<String, ObjectType> {
             description: Some(
                 "The structured output of the tool. This is a JSON string.".to_string(),
             ),
-            r#type: Type::Named {
-                name: "String".to_string().into(),
+            r#type: Type::Nullable {
+                underlying_type: Box::new(Type::Named {
+                    name: "String".to_string().into(),
+                }),
             },
             arguments: BTreeMap::new(),
         },
