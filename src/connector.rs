@@ -42,15 +42,13 @@ async fn initialize_mcp_clients(
     // Initialize clients
     for (server_name, server_config) in &configuration.servers {
         // Create MCP client
-        let service = create_mcp_client(server_config)
-            .await
-            .map_err(|e| {
-                ErrorResponse::new(
-                    StatusCode::BAD_REQUEST,
-                    format!("Failed to create MCP client: {}", e),
-                    serde_json::Value::Null,
-                )
-            })?;
+        let service = create_mcp_client(server_config).await.map_err(|e| {
+            ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                format!("Failed to create MCP client: {}", e),
+                serde_json::Value::Null,
+            )
+        })?;
 
         // Introspect resources from the server
         let mut resources = HashMap::new();
@@ -86,10 +84,8 @@ async fn initialize_mcp_clients(
                 }
             }
             Err(err) => {
-                let err_message = format!(
-                    "Failed to list tools for server {}: {}",
-                    server_name.0, err
-                );
+                let err_message =
+                    format!("Failed to list tools for server {}: {}", server_name.0, err);
                 if !is_method_not_found_error(&err) {
                     return Err(ErrorResponse::new(
                         StatusCode::BAD_REQUEST,
