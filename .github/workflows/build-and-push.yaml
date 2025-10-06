@@ -36,8 +36,12 @@ jobs:
       - name: Build and push Docker image
         env:
           VERSION: ${{ inputs.version }}
+          # Use single platform for faster dev builds, multi-platform for releases
+          PLATFORMS: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform ${{ env.PLATFORMS }} \
             --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
             --push .
