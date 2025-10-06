@@ -322,11 +322,17 @@ impl Connector for McpConnector {
                 })
                 .collect::<Vec<_>>();
 
+            let structured_content = result
+                .structured_content
+                .and_then(|content| serde_json::to_string(&content).ok());
+
             // Convert content to a row
             let mut row = IndexMap::new();
             row.insert(
                 "__value".into(),
-                models::RowFieldValue(serde_json::json!({"content": contents})),
+                models::RowFieldValue(serde_json::json!(
+                        {"content": contents, "structured_content": structured_content}
+                )),
             );
             let rowset = models::RowSet {
                 rows: Some(vec![row]),

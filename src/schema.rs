@@ -289,14 +289,29 @@ fn create_object_types() -> BTreeMap<String, ObjectType> {
 
     // Create ToolOutput type
     let mut tool_fields = BTreeMap::new();
+    // content field
     tool_fields.insert(
         "content".into(),
         ObjectField {
-            description: Some("The output of the tool".to_string()),
+            description: Some("The text output of the tool".to_string()),
             r#type: Type::Array {
                 element_type: Box::new(Type::Named {
                     name: "Content".to_string().into(),
                 }),
+            },
+            arguments: BTreeMap::new(),
+        },
+    );
+
+    // optional structured content field
+    tool_fields.insert(
+        "structured_content".into(),
+        ObjectField {
+            description: Some(
+                "The structured output of the tool. This is a JSON string.".to_string(),
+            ),
+            r#type: Type::Named {
+                name: "String".to_string().into(),
             },
             arguments: BTreeMap::new(),
         },
@@ -328,10 +343,22 @@ fn create_scalar_types() -> BTreeMap<models::ScalarTypeName, models::ScalarType>
     let mut scalar_types = BTreeMap::new();
 
     // Add core scalar types
-    scalar_types.insert("String".to_string().into(), create_scalar_type(models::TypeRepresentation::String));
-    scalar_types.insert("Boolean".to_string().into(), create_scalar_type(models::TypeRepresentation::Boolean));
-    scalar_types.insert("Int".to_string().into(), create_scalar_type(models::TypeRepresentation::Int32));
-    scalar_types.insert("Float".to_string().into(), create_scalar_type(models::TypeRepresentation::Float64));
+    scalar_types.insert(
+        "String".to_string().into(),
+        create_scalar_type(models::TypeRepresentation::String),
+    );
+    scalar_types.insert(
+        "Boolean".to_string().into(),
+        create_scalar_type(models::TypeRepresentation::Boolean),
+    );
+    scalar_types.insert(
+        "Int".to_string().into(),
+        create_scalar_type(models::TypeRepresentation::Int32),
+    );
+    scalar_types.insert(
+        "Float".to_string().into(),
+        create_scalar_type(models::TypeRepresentation::Float64),
+    );
 
     scalar_types
 }
@@ -386,7 +413,8 @@ mod tests {
         // Test string type
         let string_schema = serde_json::from_value(json!({
             "type": "string"
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&string_schema);
         match ndc_type {
             Type::Named { name } => assert_eq!(name.as_str(), "String"),
@@ -396,7 +424,8 @@ mod tests {
         // Test integer type
         let int_schema = serde_json::from_value(json!({
             "type": "integer"
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&int_schema);
         match ndc_type {
             Type::Named { name } => assert_eq!(name.as_str(), "Int"),
@@ -406,7 +435,8 @@ mod tests {
         // Test number type
         let number_schema = serde_json::from_value(json!({
             "type": "number"
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&number_schema);
         match ndc_type {
             Type::Named { name } => assert_eq!(name.as_str(), "Float"),
@@ -416,7 +446,8 @@ mod tests {
         // Test boolean type
         let bool_schema = serde_json::from_value(json!({
             "type": "boolean"
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&bool_schema);
         match ndc_type {
             Type::Named { name } => assert_eq!(name.as_str(), "Boolean"),
@@ -432,15 +463,14 @@ mod tests {
             "items": {
                 "type": "string"
             }
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&string_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "String"),
-                    _ => panic!("Expected Named element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "String"),
+                _ => panic!("Expected Named element type"),
+            },
             _ => panic!("Expected Array type"),
         }
 
@@ -450,15 +480,14 @@ mod tests {
             "items": {
                 "type": "integer"
             }
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&int_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "Int"),
-                    _ => panic!("Expected Named element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "Int"),
+                _ => panic!("Expected Named element type"),
+            },
             _ => panic!("Expected Array type"),
         }
 
@@ -468,15 +497,14 @@ mod tests {
             "items": {
                 "type": "number"
             }
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&number_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "Float"),
-                    _ => panic!("Expected Named element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "Float"),
+                _ => panic!("Expected Named element type"),
+            },
             _ => panic!("Expected Array type"),
         }
 
@@ -486,30 +514,28 @@ mod tests {
             "items": {
                 "type": "boolean"
             }
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&bool_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "Boolean"),
-                    _ => panic!("Expected Named element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "Boolean"),
+                _ => panic!("Expected Named element type"),
+            },
             _ => panic!("Expected Array type"),
         }
 
         // Test array without items schema (should default to String array)
         let generic_array_schema = serde_json::from_value(json!({
             "type": "array"
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&generic_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "String"),
-                    _ => panic!("Expected Named element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "String"),
+                _ => panic!("Expected Named element type"),
+            },
             _ => panic!("Expected Array type"),
         }
     }
@@ -525,20 +551,19 @@ mod tests {
                     "type": "string"
                 }
             }
-        })).unwrap();
+        }))
+        .unwrap();
         let ndc_type = map_schema_to_ndc_type(&nested_array_schema);
         match ndc_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Array { element_type: inner_element_type } => {
-                        match inner_element_type.as_ref() {
-                            Type::Named { name } => assert_eq!(name.as_str(), "String"),
-                            _ => panic!("Expected Named inner element type"),
-                        }
-                    }
-                    _ => panic!("Expected Array element type"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Array {
+                    element_type: inner_element_type,
+                } => match inner_element_type.as_ref() {
+                    Type::Named { name } => assert_eq!(name.as_str(), "String"),
+                    _ => panic!("Expected Named inner element type"),
+                },
+                _ => panic!("Expected Array element type"),
+            },
             _ => panic!("Expected Array type"),
         }
     }
@@ -594,75 +619,61 @@ mod tests {
         // Check names argument (required string array)
         let names_arg = arguments.get(&ArgumentName::new("names".into())).unwrap();
         match &names_arg.argument_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "String"),
-                    _ => panic!("Expected String element type for names"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "String"),
+                _ => panic!("Expected String element type for names"),
+            },
             _ => panic!("Expected Array type for names"),
         }
 
         // Check scores argument (required number array)
         let scores_arg = arguments.get(&ArgumentName::new("scores".into())).unwrap();
         match &scores_arg.argument_type {
-            Type::Array { element_type } => {
-                match element_type.as_ref() {
-                    Type::Named { name } => assert_eq!(name.as_str(), "Float"),
-                    _ => panic!("Expected Float element type for scores"),
-                }
-            }
+            Type::Array { element_type } => match element_type.as_ref() {
+                Type::Named { name } => assert_eq!(name.as_str(), "Float"),
+                _ => panic!("Expected Float element type for scores"),
+            },
             _ => panic!("Expected Array type for scores"),
         }
 
         // Check flags argument (optional boolean array)
         let flags_arg = arguments.get(&ArgumentName::new("flags".into())).unwrap();
         match &flags_arg.argument_type {
-            Type::Nullable { underlying_type } => {
-                match underlying_type.as_ref() {
-                    Type::Array { element_type } => {
-                        match element_type.as_ref() {
-                            Type::Named { name } => assert_eq!(name.as_str(), "Boolean"),
-                            _ => panic!("Expected Boolean element type for flags"),
-                        }
-                    }
-                    _ => panic!("Expected Array underlying type for flags"),
-                }
-            }
+            Type::Nullable { underlying_type } => match underlying_type.as_ref() {
+                Type::Array { element_type } => match element_type.as_ref() {
+                    Type::Named { name } => assert_eq!(name.as_str(), "Boolean"),
+                    _ => panic!("Expected Boolean element type for flags"),
+                },
+                _ => panic!("Expected Array underlying type for flags"),
+            },
             _ => panic!("Expected Nullable type for flags"),
         }
 
         // Check ids argument (optional integer array)
         let ids_arg = arguments.get(&ArgumentName::new("ids".into())).unwrap();
         match &ids_arg.argument_type {
-            Type::Nullable { underlying_type } => {
-                match underlying_type.as_ref() {
-                    Type::Array { element_type } => {
-                        match element_type.as_ref() {
-                            Type::Named { name } => assert_eq!(name.as_str(), "Int"),
-                            _ => panic!("Expected Int element type for ids"),
-                        }
-                    }
-                    _ => panic!("Expected Array underlying type for ids"),
-                }
-            }
+            Type::Nullable { underlying_type } => match underlying_type.as_ref() {
+                Type::Array { element_type } => match element_type.as_ref() {
+                    Type::Named { name } => assert_eq!(name.as_str(), "Int"),
+                    _ => panic!("Expected Int element type for ids"),
+                },
+                _ => panic!("Expected Array underlying type for ids"),
+            },
             _ => panic!("Expected Nullable type for ids"),
         }
 
         // Check mixed_data argument (optional String array)
-        let mixed_arg = arguments.get(&ArgumentName::new("mixed_data".into())).unwrap();
+        let mixed_arg = arguments
+            .get(&ArgumentName::new("mixed_data".into()))
+            .unwrap();
         match &mixed_arg.argument_type {
-            Type::Nullable { underlying_type } => {
-                match underlying_type.as_ref() {
-                    Type::Array { element_type } => {
-                        match element_type.as_ref() {
-                            Type::Named { name } => assert_eq!(name.as_str(), "String"),
-                            _ => panic!("Expected String element type for mixed_data"),
-                        }
-                    }
-                    _ => panic!("Expected Array underlying type for mixed_data"),
-                }
-            }
+            Type::Nullable { underlying_type } => match underlying_type.as_ref() {
+                Type::Array { element_type } => match element_type.as_ref() {
+                    Type::Named { name } => assert_eq!(name.as_str(), "String"),
+                    _ => panic!("Expected String element type for mixed_data"),
+                },
+                _ => panic!("Expected Array underlying type for mixed_data"),
+            },
             _ => panic!("Expected Nullable type for mixed_data"),
         }
     }
