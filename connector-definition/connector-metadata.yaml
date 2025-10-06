@@ -16,12 +16,12 @@ cliPlugin:
   type: Docker
   dockerImage: ghcr.io/hasura/mcp-connector:v0.1.0
 dockerComposeWatch:
-  # Rebuild the container if a new package restore is required because package[-lock].json changed
-  - path: package.json
-    target: /app/package.json
+  # Rebuild the container if a new package restore is required because Cargo.toml or Cargo.lock changed
+  - path: Cargo.toml
+    target: /app/Cargo.toml
     action: rebuild
-  - path: package-lock.json
-    target: /app/package-lock.json
+  - path: Cargo.lock
+    target: /app/Cargo.lock
     action: rebuild
   # For any other file change, simply copy it into the existing container and restart it
   - path: ./
