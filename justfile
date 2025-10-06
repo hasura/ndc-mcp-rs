@@ -19,3 +19,15 @@ serve:
 # Format the code
 format:
     cargo fmt
+
+# Build Docker image with specified tag
+docker-build TAG:
+    docker build -t ghcr.io/hasura/mcp-connector:{{TAG}} .
+
+# Push Docker image to ghcr.io repository
+docker-push TAG:
+    docker push ghcr.io/hasura/mcp-connector:{{TAG}}
+
+# Package connector definition into a tarball
+pack-connector:
+    tar -czf connector-definition.tgz -C connector-definition .
