@@ -1,90 +1,96 @@
-# NDC-MCP Connector (Rust)
+# NDC-MCP Connector
 
-A Native Data Connector (NDC) that bridges Hasura's Data Delivery Network (DDN) with the Model Context Protocol (MCP), enabling seamless integration between DDN Engine and MCP. This connector is written in Rust.
-
-## Overview
-
-This connector allows you to:
-
-- Access MCP resources through NDC collections
-- Execute read-only MCP tools through NDC functions
-- Execute mutable MCP tools through NDC procedures
-- Generate a dynamic NDC schema from MCP resources and tools
+A Native Data Connector (NDC) that bridges Hasura DDN with Model Context Protocol (MCP) servers, exposing MCP resources as collections and tools as functions/procedures.
 
 ## Features
 
-- **Dynamic Schema Generation**: Automatically generates an NDC schema from MCP resources and tools
-- **Resource Mapping**: MCP resources are exposed as queryable collections in NDC
-- **Tool Execution**: MCP tools can be executed through NDC functions and procedures
-- **Multiple Server Support**: Connect to multiple MCP servers with different transport types
-- **Naming Convention**: Uses a `{server_name}__{resource_or_tool}` pattern to uniquely identify resources and tools
+- **Dynamic Schema Generation**: Automatically generates NDC schema from MCP server introspection
+- **Multiple Transports**: Supports stdio (local processes) and HTTP (remote servers)
+- **Multiple Servers**: Connect to multiple MCP servers simultaneously
+- **Resource Mapping**: MCP resources → NDC collections
+- **Tool Execution**: MCP tools → NDC functions/procedures
+- **Naming Convention**: `{server_name}__{resource_or_tool}` pattern
 
-## Prerequisites
+## Quick Start
 
-- Rust 1.85.0 or later (with edition2024 support)
-- An MCP server to connect to (e.g., a filesystem MCP server)
+1. **Clone and build**:
 
-## Installation
-
-1. Clone the repository:
    ```bash
    git clone https://github.com/hasura/ndc-mcp-rs.git
    cd ndc-mcp-rs
+   cargo build
    ```
 
-2. Build the project:
+2. **Configure servers** in `configuration/servers.yaml`:
+
+   ```yaml
+   servers:
+     filesystem:
+       type: stdio
+       command: npx
+       args:
+         ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/directory"]
+
+     remote:
+       type: http
+       url: "http://localhost:8080/mcp"
+       headers:
+         Authorization: "Bearer your-token"
+       timeout_seconds: 30
+   ```
+
+3. **Generate configuration**:
+
    ```bash
-   cargo build --release
+   just generate-config
+   # or: cargo run --bin mcp-connector-cli -- --configuration configuration update --outfile configuration/configuration.json
    ```
 
-## Configuration
+4. **Start the connector**:
 
-Create a `config.json` file in the `configuration` directory with the following structure:
-
-```json
-{
-  "servers": {
-    "filesystem": {
-      "type": "stdio",
-      "command": "secure-filesystem-server",
-      "args": ["--allowed-paths", "/path/to/allowed/directory"]
-    },
-    "remote_server": {
-      "type": "http",
-      "url": "http://localhost:8080/mcp",
-      "headers": {
-        "Authorization": "Bearer your-token-here"
-      },
-      "timeout_seconds": 30
-    }
-  }
-}
-```
-
-You can configure multiple MCP servers with different transport types:
-
-- **stdio**: For local MCP servers that communicate over standard input/output
-- **http**: For remote MCP servers that communicate over streamable HTTP transport (recommended for HTTP-based servers)
-
-## Usage
-
-1. Start the NDC-MCP connector:
    ```bash
-   cargo run -- serve --configuration configuration
+   just serve
+   # or: cargo run --bin mcp-connector -- serve --configuration configuration
    ```
 
-2. The connector will start on port 8080 by default. You can now use it with Hasura or any other NDC client.
-
-3. Access the schema:
+5. **Test the schema**:
    ```bash
    curl http://localhost:8080/schema | jq
    ```
 
+## Configuration
+
+The connector uses a two-step configuration process:
+
+1. **servers.yaml**: Define your MCP servers (this is what you edit)
+2. **configuration.json**: Generated automatically by introspecting the MCP servers
+
+### Transport Types
+
+- **stdio**: For local MCP servers (Node.js packages, Python scripts, etc.)
+- **http**: For remote MCP servers using streamable HTTP transport
+
+## Development
+
+```bash
+# Build
+just build
+
+# Format code
+just format
+
+# Run clippy
+just clippy
+
+# Generate config and serve
+just generate-config && just serve
+```
+
+## Prerequisites
+
+- Rust 1.85.0+ (edition 2021)
+- MCP servers to connect to
+
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgements
-
-- [Hasura NDC Specification](https://github.com/hasura/ndc-spec)
-- [Model Context Protocol](https://github.com/hasura/rmcp)
+MIT License - see LICENSE file for details.
