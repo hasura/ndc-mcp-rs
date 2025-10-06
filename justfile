@@ -19,3 +19,7 @@ serve:
 # Generate configuration file
 generate-config:
     cargo run --bin mcp-connector-cli -- --configuration configuration update --outfile configuration/configuration.json
+
+# Format the code
+format:
+    cargo fmt

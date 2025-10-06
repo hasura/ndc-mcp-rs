@@ -1,11 +1,19 @@
-use anyhow::{Result, anyhow};
-use rmcp::{service::RunningService, RoleClient, ServiceExt, transport::streamable_http_client::{StreamableHttpClientTransport, StreamableHttpClientTransportConfig}};
+use anyhow::{anyhow, Result};
+use rmcp::{
+    service::RunningService,
+    transport::streamable_http_client::{
+        StreamableHttpClientTransport, StreamableHttpClientTransportConfig,
+    },
+    RoleClient, ServiceExt,
+};
 use std::time::Duration;
 
 use crate::config::StreamableHttpConfig;
 
 /// Create an MCP client using streamable HTTP transport
-pub async fn create_http_client(config: &StreamableHttpConfig) -> Result<RunningService<RoleClient, ()>> {
+pub async fn create_http_client(
+    config: &StreamableHttpConfig,
+) -> Result<RunningService<RoleClient, ()>> {
     // Extract Authorization header value from config if present
     let auth_header = config.headers.get("Authorization");
     // build the config to use with this transport
@@ -20,8 +28,9 @@ pub async fn create_http_client(config: &StreamableHttpConfig) -> Result<Running
     // Create and initialize the client with timeout
     let service = tokio::time::timeout(
         Duration::from_secs(config.timeout_seconds),
-        ().serve(transport)
-    ).await
+        ().serve(transport),
+    )
+    .await
     .map_err(|_| anyhow!("Timeout during MCP service initialization"))?
     .map_err(|e| anyhow!("Failed to initialize MCP service: {}", e))?;
 

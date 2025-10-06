@@ -34,13 +34,15 @@ async fn initialize_mcp_clients(
     // Initialize clients
     for (server_name, server_config) in &configuration.servers {
         // Create MCP client
-        let service = create_mcp_client(&server_config.config).await.map_err(|e| {
-            ErrorResponse::new(
-                StatusCode::BAD_REQUEST,
-                format!("Failed to create MCP client: {}", e),
-                serde_json::Value::Null,
-            )
-        })?;
+        let service = create_mcp_client(&server_config.config)
+            .await
+            .map_err(|e| {
+                ErrorResponse::new(
+                    StatusCode::BAD_REQUEST,
+                    format!("Failed to create MCP client: {}", e),
+                    serde_json::Value::Null,
+                )
+            })?;
 
         // Create client
         let client = McpClient {
@@ -186,13 +188,17 @@ impl Connector for McpConnector {
                 uri: resource.raw.uri.clone(),
             };
 
-            let result = client.service.read_resource(read_request).await.map_err(|e| {
-                ErrorResponse::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to read resource: {}", e),
-                    serde_json::Value::Null,
-                )
-            })?;
+            let result = client
+                .service
+                .read_resource(read_request)
+                .await
+                .map_err(|e| {
+                    ErrorResponse::new(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to read resource: {}", e),
+                        serde_json::Value::Null,
+                    )
+                })?;
 
             // Convert content to a row
             let content = serde_json::to_value(&result.contents).unwrap_or(Value::Null);

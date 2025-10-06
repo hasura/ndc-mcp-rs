@@ -1,9 +1,12 @@
-use rmcp::{model::{ErrorCode, ErrorData}, ServiceError};
+use anyhow::{anyhow, Result};
+use rmcp::{
+    model::{ErrorCode, ErrorData},
+    ServiceError,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
-use anyhow::{Result, anyhow};
 use std::fs;
+use std::path::PathBuf;
 
 use super::transport::create_mcp_client;
 
@@ -109,7 +112,11 @@ pub async fn generate_config(servers: Servers) -> Result<ConnectorConfig> {
     for (server_name, server_config) in servers.servers {
         // Create MCP client
         let service = create_mcp_client(&server_config).await.map_err(|e| {
-            anyhow!("Failed to create MCP client for server {}: {}", server_name.0, e)
+            anyhow!(
+                "Failed to create MCP client for server {}: {}",
+                server_name.0,
+                e
+            )
         })?;
 
         // List resources (only if server supports resources)
@@ -120,9 +127,12 @@ pub async fn generate_config(servers: Servers) -> Result<ConnectorConfig> {
                 for resource in resources_result {
                     resources.insert(resource.raw.name.clone(), resource);
                 }
-            },
+            }
             Err(err) => {
-                let err_message = format!("Failed to list resources for server {}: {}", server_name.0, err);
+                let err_message = format!(
+                    "Failed to list resources for server {}: {}",
+                    server_name.0, err
+                );
                 if !is_method_not_found_error(&err) {
                     return Err(anyhow!(err_message));
                 }
@@ -136,9 +146,10 @@ pub async fn generate_config(servers: Servers) -> Result<ConnectorConfig> {
                 for tool in tools_result {
                     tools.insert(tool.name.to_string(), tool);
                 }
-            },
+            }
             Err(err) => {
-                let err_message = format!("Failed to list tools for server {}: {}", server_name.0, err);
+                let err_message =
+                    format!("Failed to list tools for server {}: {}", server_name.0, err);
                 if !is_method_not_found_error(&err) {
                     return Err(anyhow!(err_message));
                 }
@@ -146,15 +157,26 @@ pub async fn generate_config(servers: Servers) -> Result<ConnectorConfig> {
         }
 
         // Add server config to the list
-        server_configs.insert(server_name.clone(), McpServer {
-            config: server_config,
-            resources,
-            tools,
-        });
+        server_configs.insert(
+            server_name.clone(),
+            McpServer {
+                config: server_config,
+                resources,
+                tools,
+            },
+        );
     }
-    Ok(ConnectorConfig { servers: server_configs })
+    Ok(ConnectorConfig {
+        servers: server_configs,
+    })
 }
 
 fn is_method_not_found_error(err: &ServiceError) -> bool {
-    matches!(err, ServiceError::McpError(ErrorData { code: ErrorCode::METHOD_NOT_FOUND, .. }))
+    matches!(
+        err,
+        ServiceError::McpError(ErrorData {
+            code: ErrorCode::METHOD_NOT_FOUND,
+            ..
+        })
+    )
 }

@@ -1,5 +1,9 @@
+use rmcp::{
+    model::{Resource, Tool},
+    service::RunningService,
+    RoleClient,
+};
 use std::collections::HashMap;
-use rmcp::{model::{Resource, Tool}, service::RunningService, RoleClient};
 
 use crate::config::McpServerName;
 

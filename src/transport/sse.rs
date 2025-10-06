@@ -1,7 +1,7 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use rmcp::{service::RunningService, RoleClient};
 use url::Url;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 
 use crate::config::SseConfig;
 

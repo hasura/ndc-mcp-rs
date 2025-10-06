@@ -1,5 +1,5 @@
-use std::process::ExitCode;
 use ndc_sdk::default_main::default_main_with;
+use std::process::ExitCode;
 
 use ndc_mcp_rs::connector;
 
