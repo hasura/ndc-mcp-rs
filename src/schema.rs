@@ -6,7 +6,8 @@ use rmcp::model::{Resource, Tool};
 use schemars::schema::ObjectValidation;
 use std::collections::{BTreeMap, HashMap};
 
-use crate::config::{ConnectorConfig, McpServerName};
+use crate::config::McpServerName;
+use crate::state::ConnectorState;
 
 /// Check if a tool is read-only based on annotations
 fn is_read_only_tool(tool: &Tool) -> bool {
@@ -256,30 +257,19 @@ fn create_scalar_types() -> BTreeMap<models::ScalarTypeName, models::ScalarType>
 }
 
 /// Generate the NDC schema from the connector state
-pub fn generate_schema(config: &ConnectorConfig) -> models::SchemaResponse {
+pub fn generate_schema_from_state(state: &ConnectorState) -> models::SchemaResponse {
     let mut collections = Vec::new();
     let mut functions = Vec::new();
     let mut procedures = Vec::new();
 
-    // Process each MCP server
-    for (server_name, server) in &config.servers {
-        // Add error handling for empty tools/resources
-        if server.tools.is_empty() && server.resources.is_empty() {
-            tracing::warn!("MCP server {} has no tools or resources", server_name.0);
-            continue;
-        }
-
+    // Process each MCP server from state
+    for (server_name, client) in &state.clients {
         // Map resources to collections
-        let server_collections = map_resources_to_collections(server_name, &server.resources);
-        collections.extend(server_collections);
+        collections.extend(map_resources_to_collections(server_name, &client.resources));
 
-        // Map read-only tools to functions
-        let server_functions = map_tools_to_functions(server_name, &server.tools);
-        functions.extend(server_functions);
-
-        // Map mutable tools to procedures
-        let server_procedures = map_tools_to_procedures(server_name, &server.tools);
-        procedures.extend(server_procedures);
+        // Map tools to functions and procedures
+        functions.extend(map_tools_to_functions(server_name, &client.tools));
+        procedures.extend(map_tools_to_procedures(server_name, &client.tools));
     }
 
     // Create object types

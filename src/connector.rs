@@ -13,12 +13,16 @@ use ndc_sdk::connector::ErrorResponse;
 use ndc_sdk::connector::{Connector, ConnectorSetup};
 use ndc_sdk::json_response::JsonResponse;
 use ndc_sdk::models;
+use rmcp::{
+    model::{ErrorCode, ErrorData},
+    ServiceError,
+};
 
 use crate::config::{
     ConnectorConfig, EnvVariableValue, McpServerConfig, McpServerName, StdioConfig,
     StreamableHttpConfig,
 };
-use crate::schema::generate_schema;
+use crate::schema::generate_schema_from_state;
 use crate::state::{ConnectorState, McpClient};
 use crate::transport::create_mcp_client;
 
@@ -38,21 +42,67 @@ async fn initialize_mcp_clients(
     // Initialize clients
     for (server_name, server_config) in &configuration.servers {
         // Create MCP client
-        let service = create_mcp_client(&server_config.config)
-            .await
-            .map_err(|e| {
-                ErrorResponse::new(
-                    StatusCode::BAD_REQUEST,
-                    format!("Failed to create MCP client: {}", e),
-                    serde_json::Value::Null,
-                )
-            })?;
+        let service = create_mcp_client(server_config).await.map_err(|e| {
+            ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                format!("Failed to create MCP client: {}", e),
+                serde_json::Value::Null,
+            )
+        })?;
 
-        // Create client
+        // Introspect resources from the server
+        let mut resources = HashMap::new();
+        match service.list_all_resources().await {
+            Ok(resources_result) => {
+                for resource in resources_result {
+                    resources.insert(resource.raw.name.clone(), resource);
+                }
+            }
+            Err(err) => {
+                let err_message = format!(
+                    "Failed to list resources for server {}: {}",
+                    server_name.0, err
+                );
+                if !is_method_not_found_error(&err) {
+                    return Err(ErrorResponse::new(
+                        StatusCode::BAD_REQUEST,
+                        err_message,
+                        serde_json::Value::Null,
+                    ));
+                }
+                // If method not found, just log and continue with empty resources
+                tracing::info!("Server {} does not support resources", server_name.0);
+            }
+        }
+
+        // Introspect tools from the server
+        let mut tools = HashMap::new();
+        match service.list_all_tools().await {
+            Ok(tools_result) => {
+                for tool in tools_result {
+                    tools.insert(tool.name.to_string(), tool);
+                }
+            }
+            Err(err) => {
+                let err_message =
+                    format!("Failed to list tools for server {}: {}", server_name.0, err);
+                if !is_method_not_found_error(&err) {
+                    return Err(ErrorResponse::new(
+                        StatusCode::BAD_REQUEST,
+                        err_message,
+                        serde_json::Value::Null,
+                    ));
+                }
+                // If method not found, just log and continue with empty tools
+                tracing::info!("Server {} does not support tools", server_name.0);
+            }
+        }
+
+        // Create client with introspected data
         let client = McpClient {
             service,
-            resources: server_config.resources.clone(),
-            tools: server_config.tools.clone(),
+            resources,
+            tools,
         };
 
         // Add client to state
@@ -60,6 +110,17 @@ async fn initialize_mcp_clients(
     }
 
     Ok(connector_state)
+}
+
+/// Helper function to check if an error is a method not found error
+fn is_method_not_found_error(err: &ServiceError) -> bool {
+    matches!(
+        err,
+        ServiceError::McpError(ErrorData {
+            code: ErrorCode::METHOD_NOT_FOUND,
+            ..
+        })
+    )
 }
 
 #[async_trait]
@@ -121,8 +182,12 @@ impl Connector for McpConnector {
     async fn get_schema(
         configuration: &Self::Configuration,
     ) -> Result<JsonResponse<models::SchemaResponse>, ErrorResponse> {
-        // Generate schema from state
-        Ok(generate_schema(configuration).into())
+        // Initialize temporary state to introspect MCP servers and generate schema
+        let state = initialize_mcp_clients(configuration).await?;
+
+        // Generate schema from the introspected state
+        let schema = generate_schema_from_state(&state);
+        Ok(schema.into())
     }
 
     async fn query_explain(
@@ -393,8 +458,8 @@ impl ConnectorSetup for McpConnectorSetup {
         })?;
 
         // Let's validate the env variables
-        for server in config.servers.values() {
-            match &server.config {
+        for server_config in config.servers.values() {
+            match server_config {
                 McpServerConfig::Stdio(StdioConfig { env, .. }) => {
                     validate_env_variables(env)?;
                 }
