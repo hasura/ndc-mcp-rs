@@ -28,5 +28,6 @@ docker-build TAG:
 docker-push TAG:
     docker push ghcr.io/hasura/mcp-connector:{{TAG}}
 
+# Package connector definition into a tarball
 pack-connector:
     tar -czf connector-definition.tgz -C connector-definition .
