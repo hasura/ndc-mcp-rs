@@ -31,8 +31,6 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
     libprotobuf32 \
-    nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
