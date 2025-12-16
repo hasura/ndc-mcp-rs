@@ -1,5 +1,7 @@
 # NDC-MCP Connector
 
+**NOTE**: Use https://github.com/hasura/ndc-mcp-ts (typescript port) to work directly with `npx` invokable mcp servers. The TS ported connector has `npx` installed by default via nodejs. No need for installing deps in connector Dockerfile.
+
 A Native Data Connector (NDC) that bridges Hasura DDN with Model Context Protocol (MCP) servers, exposing MCP resources as collections and tools as functions/procedures.
 
 ## Features
