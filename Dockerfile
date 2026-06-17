@@ -58,7 +58,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp /tmp/target/release/mcp-connector /app/bin/mcp-connector
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM us-docker.pkg.dev/hasura-container-images/external-images/docker.io/library/debian:bookworm-slim-stable
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
